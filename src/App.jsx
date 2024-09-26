@@ -51,29 +51,26 @@ function App() {
     files.forEach((file, index) => {
       // console.log(file[0]);
       const imagesRef = ref(storage, `images/${file[0].name}`);
-      uploadBytes(imagesRef, file[0], metadata)
-        .then((snapshot) => {
-          const imgPath = snapshot.metadata.fullPath;
-          // console.log(imgPath);
-          // console.log(snapshot, "<--snapshot");
-          setTemporaryImage(null);
-          // console.log(img);
-          return imgPath;
-        })
-        .then((imgPath) => {
-          setImgReference([...imgReferene, ref(storageRef, imgPath)]);
-        });
+      return uploadBytes(imagesRef, file[0], metadata).then((snapshot) => {
+        const imgPath = snapshot.metadata.fullPath;
+        // console.log(imgPath);
+        // console.log(snapshot, "<--snapshot");
+        setTemporaryImage([]);
+        setImgReference((prevImgRef) => [
+          ...prevImgRef,
+          ref(storageRef, imgPath),
+        ]);
+        // console.log(img);
+        // return imgPath;
+      });
     });
   };
 
   useEffect(() => {
     if (imgReferene.length > 0) {
       imgReferene.forEach((reference) => {
-        console.log(reference);
         getDownloadURL(ref(storage, reference)).then((url) => {
-          console.log(url);
-          setImg([...img, url]);
-          // console.log(imgReferene);
+          setImg((prevImg) => [...prevImg, url]);
         });
       });
     }
