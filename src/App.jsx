@@ -45,17 +45,24 @@ function App() {
 
   // uploads the image into the cloud and returns it for user to see
   const handleClick = (event) => {
+    const metadata = {
+      contentType: "image/jpg",
+    };
     files.forEach((file, index) => {
       // console.log(file[0]);
       const imagesRef = ref(storage, `images/${file[0].name}`);
-      uploadBytes(imagesRef, file).then((snapshot) => {
-        const imgPath = snapshot.metadata.fullPath;
-        // console.log(imgPath);
-        // console.log(snapshot, "<--snapshot");
-        setImgReference([...imgReferene, ref(storageRef, imgPath)]);
-        setTemporaryImage(null);
-        // console.log(img);
-      });
+      uploadBytes(imagesRef, file[0], metadata)
+        .then((snapshot) => {
+          const imgPath = snapshot.metadata.fullPath;
+          // console.log(imgPath);
+          // console.log(snapshot, "<--snapshot");
+          setTemporaryImage(null);
+          // console.log(img);
+          return imgPath;
+        })
+        .then((imgPath) => {
+          setImgReference([...imgReferene, ref(storageRef, imgPath)]);
+        });
     });
   };
 
@@ -70,7 +77,8 @@ function App() {
         });
       });
     }
-  }, [imgReferene]);
+  }, [imgReferene, storage]);
+  console.log(img);
 
   return (
     <>
