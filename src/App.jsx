@@ -1,9 +1,6 @@
 import { useState, useEffect } from "react";
-import reactLogo from "./assets/react.svg";
-import viteLogo from "/vite.svg";
 import "./App.css";
-import { getFirestore, collection, getDocs } from "firebase/firestore/lite";
-
+import { getFirestore } from "firebase/firestore/lite";
 import { initializeApp } from "firebase/app";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
@@ -24,7 +21,6 @@ function App() {
   };
 
   const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
 
   //access storage
   const storage = getStorage();
@@ -32,15 +28,21 @@ function App() {
   //path to the root
   const storageRef = ref(storage);
 
-  //path to images folder
-
   // sets preview image (temporaryImg) for user to view what they are about to upload, without uploading into the cloud
   const handleInput = (event) => {
-    setFiles([...files, event.target.files]);
-    const images = event.target.files;
-    // console.log(images[0].name, "<--name");
+    setFiles((previousFiles) => {
+      const newArray = [...previousFiles];
+      newArray[event.target.id] = event.target.files;
+      return newArray;
+    });
+    console.log(event.target.id);
+    const images = event.currentTarget.files;
     const temporaryURL = window.URL.createObjectURL(images[0]);
-    setTemporaryImage([...temporaryImage, temporaryURL]);
+    setTemporaryImage((previousImage) => {
+      const newArray = [...previousImage];
+      newArray[event.target.id] = temporaryURL;
+      return newArray;
+    });
   };
 
   // uploads the image into the cloud and returns it for user to see
@@ -49,33 +51,36 @@ function App() {
       contentType: "image/jpg",
     };
     files.forEach((file, index) => {
-      // console.log(file[0]);
       const imagesRef = ref(storage, `images/${file[0].name}`);
       return uploadBytes(imagesRef, file[0], metadata).then((snapshot) => {
         const imgPath = snapshot.metadata.fullPath;
-        // console.log(imgPath);
-        // console.log(snapshot, "<--snapshot");
         setTemporaryImage([]);
         setImgReference((prevImgRef) => [
           ...prevImgRef,
           ref(storageRef, imgPath),
         ]);
-        // console.log(img);
-        // return imgPath;
       });
     });
   };
 
   useEffect(() => {
+    const promises = [];
     if (imgReferene.length > 0) {
       imgReferene.forEach((reference) => {
-        getDownloadURL(ref(storage, reference)).then((url) => {
-          setImg((prevImg) => [...prevImg, url]);
+        const promise = getDownloadURL(ref(storage, reference)).then((url) => {
+          return url;
         });
+        promises.push(promise);
       });
     }
-  }, [imgReferene, storage]);
-  console.log(img);
+    Promise.all(promises)
+      .catch((err) => {
+        console.log(err, "<-- error");
+      })
+      .then((urls) => {
+        setImg(urls);
+      });
+  }, [imgReferene]);
 
   return (
     <>
@@ -87,7 +92,6 @@ function App() {
           })}
         </ul>
       )}
-      {/* {temporaryImage && <img width="50px" src={temporaryImage}></img>} */}
       {img && (
         <ul>
           {img.map((uploadedImg, index) => {
@@ -95,9 +99,9 @@ function App() {
           })}
         </ul>
       )}
-      <input type="file" onChange={handleInput}></input>
-      <input type="file" onChange={handleInput}></input>
-      <input type="file" onChange={handleInput}></input>
+      <input type="file" id="0" onChange={handleInput}></input>
+      <input type="file" id="1" onChange={handleInput}></input>
+      <input type="file" id="2" onChange={handleInput}></input>
       <button onClick={handleClick}>Upload</button>
     </>
   );
